@@ -8,7 +8,7 @@ process COMET {
         'ghcr.io/bigbio/openms-tools-thirdparty:2025.04.14' }"
 
     input:
-    tuple val(meta), path(mzml_file), path(database)
+    tuple val(meta), path(mzml_file), path(database), path(idx_file)
 
     output:
     tuple val(meta), path("${mzml_file.baseName}_comet.idXML"),  emit: id_files_comet
@@ -18,6 +18,10 @@ process COMET {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.mzml_id}"
+    
+    // Determine which database file to use for search
+    // If idx_file is provided and not empty, use it; otherwise use the FASTA database
+    def search_database = (idx_file && idx_file.name != 'NO_FILE') ? idx_file : database
 
     if (meta.fragmentmasstoleranceunit == "ppm") {
         // Note: This uses an arbitrary rule to decide if it was hi-res or low-res
@@ -86,7 +90,7 @@ process COMET {
         -in ${mzml_file} \\
         -out ${mzml_file.baseName}_comet.idXML \\
         -threads $task.cpus \\
-        -database "${database}" \\
+        -database "${search_database}" \\
         -instrument ${inst} \\
         -missed_cleavages $params.allowed_missed_cleavages \\
         -min_peptide_length $params.min_peptide_length \\

@@ -1,5 +1,6 @@
 
-include { MSGF_DB_INDEXING } from '../../../modules/local/utils/msgf_db_indexing/main'
+include { MSGF_DB_INDEXING  } from '../../../modules/local/utils/msgf_db_indexing/main'
+include { COMET_DB_INDEXING } from '../../../modules/local/utils/comet_db_indexing/main'
 include { MSGF  } from '../../../modules/local/openms/msgf/main'
 include { COMET } from '../../../modules/local/openms/comet/main'
 include { SAGE  } from '../../../modules/local/openms/sage/main'
@@ -29,7 +30,19 @@ workflow PEPTIDE_DATABASE_SEARCH {
     }
 
     if (params.search_engines.contains("comet")) {
-        COMET(ch_mzmls_search.combine(ch_searchengine_in_db))
+        if (params.use_comet_fragindex) {
+            // Extract meta from the first mzml entry and combine with database
+            ch_meta_for_indexing = ch_mzmls_search.first().map { meta, mzml -> meta }
+            ch_db_with_meta = ch_meta_for_indexing.combine(ch_searchengine_in_db).map { meta, db -> [meta, db] }
+            
+            COMET_DB_INDEXING(ch_db_with_meta)
+            ch_versions = ch_versions.mix(COMET_DB_INDEXING.out.versions)
+            
+            COMET(ch_mzmls_search.combine(ch_searchengine_in_db).combine(COMET_DB_INDEXING.out.idx_file))
+        } else {
+            // When fragindex is disabled, pass an empty file as placeholder
+            COMET(ch_mzmls_search.combine(ch_searchengine_in_db).combine(Channel.fromPath('NO_FILE')))
+        }
         ch_versions = ch_versions.mix(COMET.out.versions)
         ch_id_comet = ch_id_comet.mix(COMET.out.id_files_comet)
     }

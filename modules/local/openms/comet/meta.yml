@@ -22,6 +22,10 @@ input:
       type: file
       description: fasta file
       pattern: "*.{fasta,fa}"
+  - idx_file:
+      type: file
+      description: Optional Comet fragindex file for accelerated search
+      pattern: "*.idx"
 output:
   - meta:
       type: map

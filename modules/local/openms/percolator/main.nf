@@ -18,6 +18,7 @@ process PERCOLATOR {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.mzml_id}"
+    def percolator_reset = params.percolator_reset ? "-reset-algorithm" : ""
 
     """
     OMP_NUM_THREADS=$task.cpus PercolatorAdapter \\
@@ -28,6 +29,7 @@ process PERCOLATOR {
         -decoy_pattern $params.decoy_string \\
         -post_processing_tdc \\
         -score_type pep \\
+        ${percolator_reset} \\
         $args \\
         2>&1 | tee ${id_file.baseName}_percolator.log
 
